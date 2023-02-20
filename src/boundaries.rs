@@ -1,6 +1,7 @@
 extern crate osmpbfreader;
 
-use geo_types::{Coordinate, LineString, MultiPolygon, Point, Polygon};
+use geo::Coord;
+use geo_types::{LineString, MultiPolygon, Point, Polygon};
 use std::borrow::Borrow;
 use std::collections::BTreeMap;
 
@@ -185,7 +186,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
     let mut append_ring = |nodes: &[osmpbfreader::Node]| {
         let poly_geom = nodes
             .iter()
-            .map(|n| Coordinate {
+            .map(|n| Coord {
                 x: n.lon(),
                 y: n.lat(),
             })
@@ -259,7 +260,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
             if !added_part {
                 use geo::haversine_distance::HaversineDistance;
                 let p = |n: &osmpbfreader::Node| {
-                    Point(Coordinate {
+                    Point(Coord {
                         x: n.lon(),
                         y: n.lat(),
                     })
@@ -272,7 +273,7 @@ pub fn build_boundary_parts<T: Borrow<osmpbfreader::OsmObj>>(
                         warn!(
                             "boundary: relation/{} ({}): unclosed polygon, dist({:?}, {:?}) = {}",
                             relation.id.0,
-                            relation.tags.get("name").map_or("", |s| &s),
+                            relation.tags.get("name").map_or("", |s| s),
                             added_nodes.first().unwrap().id,
                             added_nodes.last().unwrap().id,
                             distance
@@ -327,7 +328,7 @@ fn test_build_boundary_not_closed() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        assert!(build_boundary(&relation, &builder.objects).is_none());
+        assert!(build_boundary(relation, &builder.objects).is_none());
     } else {
         unreachable!()
     }
@@ -350,7 +351,7 @@ fn test_build_boundary_closed() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
@@ -376,7 +377,7 @@ fn test_build_boundary_closed_reverse() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
@@ -399,7 +400,7 @@ fn test_build_one_boundary_closed() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
@@ -431,14 +432,14 @@ fn test_build_two_opposite_clockwise_boundaries() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
         let centroid = multipolygon.centroid();
         let centroid = centroid.unwrap();
-        assert!(centroid.lng().abs() < f64::EPSILON);
-        assert!(centroid.lat().abs() < f64::EPSILON);
+        assert!(centroid.x().abs() < f64::EPSILON);
+        assert!(centroid.y().abs() < f64::EPSILON);
     } else {
         unreachable!()
     }
@@ -464,7 +465,7 @@ fn test_build_two_boundaries_closed() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
@@ -496,7 +497,7 @@ fn test_build_one_donut_boundary() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
@@ -536,7 +537,7 @@ fn test_build_two_boundaries_with_one_hole() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
@@ -576,7 +577,7 @@ fn test_build_one_boundary_with_two_holes() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
@@ -624,7 +625,7 @@ fn test_build_two_boundaries_with_two_holes() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
@@ -663,7 +664,7 @@ fn test_build_inner_touching_outer_at_one_point() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 1);
@@ -705,7 +706,7 @@ fn test_build_two_touching_rings() {
         .relation_id
         .into();
     if let osmpbfreader::OsmObj::Relation(ref relation) = builder.objects[&rel_id] {
-        let multipolygon = build_boundary(&relation, &builder.objects);
+        let multipolygon = build_boundary(relation, &builder.objects);
         assert!(multipolygon.is_some());
         let multipolygon = multipolygon.unwrap();
         assert_eq!(multipolygon.0.len(), 2);
