@@ -1,5 +1,4 @@
-extern crate osmpbfreader;
-use geo_types::Point;
+use geo::Point;
 use std::collections::BTreeMap;
 
 pub fn named_node(lon: f64, lat: f64, name: &'static str) -> (Point<f64>, Option<String>) {
@@ -12,9 +11,9 @@ pub struct Relation<'a> {
 }
 
 impl<'a> Relation<'a> {
-    pub fn outer(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
+    pub fn outer(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation<'_> {
         let id = self.builder.way(coords);
-        if let osmpbfreader::OsmObj::Relation(ref mut rel) = self
+        if let osmpbfreader::OsmObj::Relation(rel) = self
             .builder
             .objects
             .get_mut(&self.relation_id.into())
@@ -30,9 +29,9 @@ impl<'a> Relation<'a> {
 }
 
 impl<'a> Relation<'a> {
-    pub fn inner(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
+    pub fn inner(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation<'_> {
         let id = self.builder.way(coords);
-        if let osmpbfreader::OsmObj::Relation(ref mut rel) = self
+        if let osmpbfreader::OsmObj::Relation(rel) = self
             .builder
             .objects
             .get_mut(&self.relation_id.into())
@@ -61,7 +60,7 @@ impl OsmBuilder {
         Self::default()
     }
 
-    pub fn relation(&mut self) -> Relation {
+    pub fn relation(&mut self) -> Relation<'_> {
         let id = osmpbfreader::RelationId(self.relation_id);
         let r = osmpbfreader::Relation {
             id,
