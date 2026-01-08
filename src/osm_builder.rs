@@ -1,5 +1,4 @@
-extern crate osmpbfreader;
-use geo_types::Point;
+use geo::Point;
 use std::collections::BTreeMap;
 
 pub fn named_node(lon: f64, lat: f64, name: &'static str) -> (Point<f64>, Option<String>) {
@@ -12,9 +11,9 @@ pub struct Relation<'a> {
 }
 
 impl<'a> Relation<'a> {
-    pub fn outer(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
+    pub fn outer(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation<'_> {
         let id = self.builder.way(coords);
-        if let osmpbfreader::OsmObj::Relation(ref mut rel) = self
+        if let osmpbfreader::OsmObj::Relation(rel) = self
             .builder
             .objects
             .get_mut(&self.relation_id.into())
@@ -30,9 +29,9 @@ impl<'a> Relation<'a> {
 }
 
 impl<'a> Relation<'a> {
-    pub fn inner(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation {
+    pub fn inner(&mut self, coords: Vec<(Point<f64>, Option<String>)>) -> &'a mut Relation<'_> {
         let id = self.builder.way(coords);
-        if let osmpbfreader::OsmObj::Relation(ref mut rel) = self
+        if let osmpbfreader::OsmObj::Relation(rel) = self
             .builder
             .objects
             .get_mut(&self.relation_id.into())
@@ -47,6 +46,7 @@ impl<'a> Relation<'a> {
     }
 }
 
+#[derive(Default)]
 pub struct OsmBuilder {
     node_id: i64,
     way_id: i64,
@@ -55,24 +55,12 @@ pub struct OsmBuilder {
     named_nodes: BTreeMap<String, osmpbfreader::NodeId>,
 }
 
-impl Default for OsmBuilder {
-    fn default() -> Self {
-        Self {
-            node_id: 0,
-            way_id: 0,
-            relation_id: 0,
-            objects: BTreeMap::new(),
-            named_nodes: BTreeMap::new(),
-        }
-    }
-}
-
 impl OsmBuilder {
     pub fn new() -> OsmBuilder {
         Self::default()
     }
 
-    pub fn relation(&mut self) -> Relation {
+    pub fn relation(&mut self) -> Relation<'_> {
         let id = osmpbfreader::RelationId(self.relation_id);
         let r = osmpbfreader::Relation {
             id,
@@ -110,8 +98,8 @@ impl OsmBuilder {
         let id = osmpbfreader::NodeId(self.node_id);
         let n = osmpbfreader::Node {
             id,
-            decimicro_lat: (coord.lat() * 1e7) as i32,
-            decimicro_lon: (coord.lng() * 1e7) as i32,
+            decimicro_lat: (coord.y() * 1e7) as i32,
+            decimicro_lon: (coord.x() * 1e7) as i32,
             tags: osmpbfreader::Tags::new(),
         };
         self.node_id += 1;
